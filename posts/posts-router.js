@@ -83,14 +83,20 @@ router.post("/", (req, res) => {
 
 // POST a new comment
 router.post("/:id/comments", (req, res) => {
-  const commentData = req.body;
+  const { text } = req.body;
   const { id } = req.params;
-  if (commentData.text) {
-    db.insertComment(commentData)
-      .then(comment => {
-        if (comment && id) {
-          const newComment = { ...commentData, ...comment };
-          res.status(201).json(newComment);
+  if (text) {
+    db.findById(id)
+      .then(post => {
+        if (post.length) {
+          const newComment = { text, post_id: id };
+          db.insertComment(newComment)
+            .then(comment => {
+              res.status(201).json({ ...comment, ...newComment });
+            })
+            .catch(err => {
+              res.status(500).json({ message: "Server error", err });
+            });
         } else {
           res.status(404).json({
             message: "The post with the specified ID does not exist."
@@ -98,7 +104,7 @@ router.post("/:id/comments", (req, res) => {
         }
       })
       .catch(err => {
-        res.status(500).json({ error: "Server error", err });
+        res.status(500).json({ message: "Server error", err });
       });
   } else {
     res
@@ -107,6 +113,7 @@ router.post("/:id/comments", (req, res) => {
   }
 });
 
+// PUT a post
 router.put("/:id", (req, res) => {
   const { id } = req.params;
   const changes = req.body;
